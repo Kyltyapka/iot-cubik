@@ -1,0 +1,122 @@
+[
+    {
+        "id": "c604105ed74e6551",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "123df2ab7db11064",
+        "type": "debug",
+        "z": "c604105ed74e6551",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 660,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "ad0842fb792e291f",
+        "type": "mqtt in",
+        "z": "c604105ed74e6551",
+        "name": "",
+        "topic": "pomodoro/cube/state/321",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "28212a9ac54ccdef",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 150,
+        "y": 340,
+        "wires": [
+            [
+                "5c4bd9680cc14b6a"
+            ]
+        ]
+    },
+    {
+        "id": "5c4bd9680cc14b6a",
+        "type": "function",
+        "z": "c604105ed74e6551",
+        "name": "function 1",
+        "func": "let data = msg.payload;\n\nif (!data.action) {\n    return null;\n}\n\nswitch (data.action) {\n    case \"start\":\n        msg.method = \"POST\";\n        msg.url = \"http://127.0.0.1:3000/api/timer/start\";\n        msg.payload = {\n            mode: data.mode,\n            duration: data.duration\n        };\n        break;\n\n    case \"pause\":\n        msg.method = \"POST\";\n        msg.url = \"http://127.0.0.1:3000/api/timer/pause\";\n        msg.payload = {};\n        break;\n\n    case \"resume\":\n        msg.method = \"POST\";\n        msg.url = \"http://127.0.0.1:3000/api/timer/resume\";\n        msg.payload = {};\n        break;\n\n    default:\n        return null;\n}\n\nmsg.headers = {\n    \"Content-Type\": \"application/json\"\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 340,
+        "y": 340,
+        "wires": [
+            [
+                "7d4790921f1af8e8"
+            ]
+        ]
+    },
+    {
+        "id": "7d4790921f1af8e8",
+        "type": "http request",
+        "z": "c604105ed74e6551",
+        "name": "",
+        "method": "use",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 510,
+        "y": 340,
+        "wires": [
+            [
+                "123df2ab7db11064"
+            ]
+        ]
+    },
+    {
+        "id": "28212a9ac54ccdef",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "broker.hivemq.com",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    }
+]
