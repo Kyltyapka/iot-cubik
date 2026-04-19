@@ -10,7 +10,7 @@ state_lock = Lock()
 
 
 TELEGRAM_BOT_TOKEN = "8691657713:AAELu8w1XWB2J_cN8eoa1GrwBgP55Me5ZEc"
-TELEGRAM_CHAT_ID = "932034061"
+TELEGRAM_CHAT_ID = "739785737"
 DB_PATH = "pomodoro.db"
 
 MODE_DURATIONS = {
@@ -22,6 +22,18 @@ MODE_DURATIONS = {
 }
 
 API_KEY = "pomodoro-backend-2026"
+
+NOTIFY_ACTIONS = {
+    "work_started",
+    "long_work_started",
+    "break_started",
+    "paused",
+    "resume",
+    "off",
+    "auto_break_5_started",
+    "auto_break_10_started",
+    "timer_completed"
+}
 
 
 # ---------------- Time helpers ----------------
@@ -171,6 +183,50 @@ def insert_session(mode, status, start_time, end_time, duration):
     conn.commit()
     conn.close()
 
+def format_seconds_human(seconds):
+    if seconds is None:
+        return "—"
+
+    seconds = max(0, int(seconds))
+    minutes = seconds // 60
+    sec = seconds % 60
+    return f"{minutes} min {sec} sec"
+
+def build_notification_message(s):
+    action = s.get("last_action")
+    mode = s.get("current_mode")
+    paused_mode = s.get("paused_mode")
+    paused_remaining = s.get("paused_remaining_seconds")
+
+    if action == "work_started":
+        return "Work session started: 25 min."
+
+    if action == "long_work_started":
+        return "Long Work session started: 50 min."
+
+    if action == "break_started":
+        return "Break started: 5 min."
+
+    if action == "paused":
+        return f"Timer paused. Remaining: {format_seconds_human(paused_remaining)}."
+
+    if action == "resume":
+        return f"Session resumed: {mode}. Remaining: {format_seconds_human(s.get('remaining_seconds'))}."
+
+    if action == "auto_break_5_started":
+        return "Work completed. Auto break 5 min started."
+
+    if action == "auto_break_10_started":
+        return "Long Work completed. Auto break 10 min started."
+
+    if action == "timer_completed":
+        return "Timer completed. System is now Off / Idle."
+
+    if action == "off":
+        return "Timer switched to idle mode."
+
+    return None
+
 def send_telegram_message(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
@@ -178,10 +234,33 @@ def send_telegram_message(text):
         "text": text
     }
 
+    print("Sending Telegram:", payload)
+
     try:
-        requests.post(url, json=payload, timeout=5)
+        response = requests.post(url, json=payload, timeout=5)
+        print("Telegram response:", response.status_code)
+        print("Telegram body:", response.text)
     except Exception as e:
-        print("Telegram send error:", e)
+        print("Telegram error:", repr(e))
+
+last_telegram_message = {"text": None, "sent_at": None}
+
+def should_send_telegram(text, cooldown_seconds=3):
+    if not text:
+        return False
+
+    current_time = now()
+
+    if (
+        last_telegram_message["text"] == text
+        and last_telegram_message["sent_at"] is not None
+        and (current_time - last_telegram_message["sent_at"]).total_seconds() < cooldown_seconds
+    ):
+        return False
+
+    last_telegram_message["text"] = text
+    last_telegram_message["sent_at"] = current_time
+    return True
 
 
 # ---------------- Logic ----------------
@@ -327,9 +406,11 @@ def api_mode():
 
         save_state(s)
 
-        send_telegram_message(s["notification"])
+        if s["last_action"] in NOTIFY_ACTIONS:message = build_notification_message(s)
+        if should_send_telegram(message):
+            send_telegram_message(message)
 
-    return jsonify({"status": "ok", "data": s})
+        return jsonify({"status": "ok", "data": s})
 
 
 @app.route("/api/state", methods=["GET"])
@@ -408,6 +489,11 @@ def auto_loop():
                 s = set_idle("timer_completed", f"{mode} completed. System is now Off / Idle")
 
             save_state(s)
+
+            if s["last_action"] in NOTIFY_ACTIONS:
+                message = build_notification_message(s)
+                if should_send_telegram(message):
+                    send_telegram_message(message)
 
 
 # ---------------- Run ----------------
