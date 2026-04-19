@@ -14,10 +14,13 @@ const char* WIFI_PASSWORD = "0989239311";
 // =========================
 // MQTT
 // =========================
-const char* MQTT_BROKER = "broker.hivemq.com";
+const char* MQTT_BROKER = "192.168.0.100";
 const int   MQTT_PORT   = 1883;
 const char* MQTT_TOPIC  = "pomodoro/cube/state/321";
-const char* MQTT_CLIENT_ID = "esp32_pomodoro_cube_456";
+const char* MQTT_CLIENT_ID = "esp32_pomodoro_cube";
+
+const char* MQTT_USERNAME = "pomodoro_user";
+const char* MQTT_PASSWORD = "PomodoroCube2026!";
 
 // =========================
 // Pins
@@ -126,7 +129,7 @@ void connectMQTT() {
 
   while (!mqttClient.connected()) {
     Serial.print("Connecting to MQTT...");
-    if (mqttClient.connect(MQTT_CLIENT_ID)) {
+    if (mqttClient.connect(MQTT_CLIENT_ID, MQTT_USERNAME, MQTT_PASSWORD)) {
       Serial.println("connected");
     } else {
       Serial.print("failed, rc=");

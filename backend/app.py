@@ -3,10 +3,14 @@ from datetime import datetime, timedelta, timezone
 from threading import Lock, Thread
 import sqlite3
 import time
+import requests
 
 app = Flask(__name__)
 state_lock = Lock()
 
+
+TELEGRAM_BOT_TOKEN = "8691657713:AAELu8w1XWB2J_cN8eoa1GrwBgP55Me5ZEc"
+TELEGRAM_CHAT_ID = "932034061"
 DB_PATH = "pomodoro.db"
 
 MODE_DURATIONS = {
@@ -16,6 +20,8 @@ MODE_DURATIONS = {
     "auto_break_5": 5 * 60,
     "auto_break_10": 10 * 60,
 }
+
+API_KEY = "pomodoro-backend-2026"
 
 
 # ---------------- Time helpers ----------------
@@ -32,6 +38,17 @@ def parse_iso(value):
     if not value:
         return None
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+from functools import wraps
+
+def require_api_key(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        provided = request.headers.get("X-API-Key")
+        if provided != API_KEY:
+            return jsonify({"status": "error", "message": "Unauthorized"}), 401
+        return f(*args, **kwargs)
+    return decorated
 
 
 # ---------------- DB ----------------
@@ -154,6 +171,18 @@ def insert_session(mode, status, start_time, end_time, duration):
     conn.commit()
     conn.close()
 
+def send_telegram_message(text):
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": text
+    }
+
+    try:
+        requests.post(url, json=payload, timeout=5)
+    except Exception as e:
+        print("Telegram send error:", e)
+
 
 # ---------------- Logic ----------------
 
@@ -267,6 +296,7 @@ def cancel_current(s):
 # ---------------- API ----------------
 
 @app.route("/api/mode", methods=["POST"])
+@require_api_key
 def api_mode():
     data = request.get_json(silent=True) or {}
     mode = data.get("mode")
@@ -296,6 +326,8 @@ def api_mode():
             s["notification"] = f"Unknown mode: {mode}"
 
         save_state(s)
+
+        send_telegram_message(s["notification"])
 
     return jsonify({"status": "ok", "data": s})
 
@@ -339,6 +371,8 @@ def api_health():
 @app.route("/", methods=["GET"])
 def dashboard():
     return render_template("dashboard.html")
+
+
 
 
 # ---------------- Auto transitions ----------------
