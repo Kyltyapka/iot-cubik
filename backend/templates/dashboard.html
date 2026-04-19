@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pomodoro Dashboard</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --accent: #2563eb;
+      --green: #16a34a;
+      --yellow: #d97706;
+      --red: #dc2626;
+      --gray: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 24px 0;
+      font-size: 40px;
+      font-weight: 700;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+      border: 1px solid var(--border);
+    }
+
+    .card h2 {
+      margin: 0 0 20px 0;
+      font-size: 20px;
+    }
+
+    .state-mode {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-transform: capitalize;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 14px;
+      margin-bottom: 20px;
+      color: #fff;
+    }
+
+    .badge.running {
+      background: var(--green);
+    }
+
+    .badge.paused {
+      background: var(--yellow);
+    }
+
+    .badge.idle {
+      background: var(--gray);
+    }
+
+    .countdown {
+      font-size: 48px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin: 12px 0 24px 0;
+    }
+
+    .meta {
+      display: grid;
+      gap: 10px;
+      font-size: 16px;
+    }
+
+    .meta-row strong {
+      display: inline-block;
+      min-width: 130px;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15px;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .mode-pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #4338ca;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .status-pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      white-space: nowrap;
+      color: #fff;
+    }
+
+    .status-started { background: var(--accent); }
+    .status-completed { background: var(--green); }
+    .status-paused { background: var(--yellow); }
+    .status-resumed { background: #7c3aed; }
+    .status-cancelled { background: var(--red); }
+
+    .empty {
+      color: var(--muted);
+      padding: 12px 0;
+    }
+
+    .full-width {
+      margin-top: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .countdown {
+        font-size: 38px;
+      }
+
+      h1 {
+        font-size: 32px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Pomodoro Dashboard</h1>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Поточний стан</h2>
+
+        <div class="state-mode" id="currentMode">—</div>
+        <div class="badge idle" id="stateBadge">idle</div>
+
+        <div class="countdown" id="countdown">--:--</div>
+
+        <div class="meta">
+          <div class="meta-row"><strong>Завершення:</strong> <span id="endsAt">—</span></div>
+          <div class="meta-row"><strong>Початок:</strong> <span id="startedAt">—</span></div>
+          <div class="meta-row"><strong>Paused mode:</strong> <span id="pausedMode">—</span></div>
+          <div class="meta-row"><strong>Paused left:</strong> <span id="pausedRemaining">—</span></div>
+          <div class="meta-row"><strong>Остання дія:</strong> <span id="lastAction">—</span></div>
+          <div class="meta-row"><strong>Повідомлення:</strong> <span id="notification">—</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Зведення</h2>
+        <div class="meta">
+          <div class="meta-row"><strong>Стан:</strong> <span id="summaryState">—</span></div>
+          <div class="meta-row"><strong>Режим:</strong> <span id="summaryMode">—</span></div>
+          <div class="meta-row"><strong>Залишок:</strong> <span id="summaryRemaining">—</span></div>
+          <div class="meta-row"><strong>Оновлено:</strong> <span id="updatedAt">—</span></div>
+        </div>
+        <p class="muted" style="margin-top:20px;">
+          Дані оновлюються автоматично кожні 5 секунд.
+        </p>
+      </div>
+    </div>
+
+    <div class="card full-width">
+      <h2>Останні сесії</h2>
+      <div id="sessionsContainer">
+        <div class="empty">Завантаження...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:3000";
+
+    let currentEndsAt = null;
+    let currentState = "idle";
+    let fallbackRemaining = null;
+
+    function formatMode(mode) {
+      if (!mode) return "—";
+
+      const map = {
+        work: "Work",
+        long_work: "Long Work",
+        break: "Break",
+        pause: "Pause",
+        off: "Off / Idle",
+        auto_break_5: "Auto Break 5",
+        auto_break_10: "Auto Break 10"
+      };
+
+      return map[mode] || mode;
+    }
+
+    function formatDateTime(value) {
+      if (!value) return "—";
+      const d = new Date(value);
+      if (isNaN(d)) return value;
+      return d.toLocaleString("uk-UA");
+    }
+
+    function formatSeconds(total) {
+      if (total === null || total === undefined || isNaN(total)) return "—";
+      const sec = Math.max(0, Math.floor(total));
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+
+      if (h > 0) {
+        return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+      }
+      return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+
+    function updateCountdown() {
+      const countdownEl = document.getElementById("countdown");
+      const summaryRemaining = document.getElementById("summaryRemaining");
+
+      if (currentState !== "running") {
+        if (currentState === "paused" && fallbackRemaining != null) {
+          const value = formatSeconds(fallbackRemaining);
+          countdownEl.textContent = value;
+          summaryRemaining.textContent = value;
+        } else {
+          countdownEl.textContent = "--:--";
+          summaryRemaining.textContent = "—";
+        }
+        return;
+      }
+
+      if (!currentEndsAt) {
+        countdownEl.textContent = "--:--";
+        summaryRemaining.textContent = "—";
+        return;
+      }
+
+      const diff = Math.floor((new Date(currentEndsAt).getTime() - Date.now()) / 1000);
+      const formatted = formatSeconds(diff);
+      countdownEl.textContent = formatted;
+      summaryRemaining.textContent = formatted;
+    }
+
+    async function loadState() {
+      try {
+        const res = await fetch(`${API_BASE}/api/state`);
+        const json = await res.json();
+        const s = json.data;
+
+        currentState = s.state || "idle";
+        currentEndsAt = s.ends_at || null;
+        fallbackRemaining = s.paused_remaining_seconds ?? s.remaining_seconds ?? null;
+
+        document.getElementById("currentMode").textContent = formatMode(s.current_mode);
+        document.getElementById("summaryMode").textContent = formatMode(s.current_mode);
+
+        const badge = document.getElementById("stateBadge");
+        badge.textContent = s.state || "idle";
+        badge.className = `badge ${s.state || "idle"}`;
+
+        document.getElementById("summaryState").textContent = s.state || "—";
+        document.getElementById("endsAt").textContent = formatDateTime(s.ends_at);
+        document.getElementById("startedAt").textContent = formatDateTime(s.started_at);
+        document.getElementById("pausedMode").textContent = formatMode(s.paused_mode);
+        document.getElementById("pausedRemaining").textContent = formatSeconds(s.paused_remaining_seconds);
+        document.getElementById("lastAction").textContent = s.last_action || "—";
+        document.getElementById("notification").textContent = s.notification || "—";
+        document.getElementById("updatedAt").textContent = new Date().toLocaleString("uk-UA");
+
+        updateCountdown();
+      } catch (err) {
+        console.error("State load error:", err);
+      }
+    }
+
+    function renderSessionsTable(items) {
+      if (!items || !items.length) {
+        return `<div class="empty">Історія сесій поки відсутня.</div>`;
+      }
+
+      const rows = items.map(item => {
+        const statusClass = `status-${item.status || ""}`;
+        return `
+          <tr>
+            <td>${item.id ?? "—"}</td>
+            <td><span class="mode-pill">${formatMode(item.mode)}</span></td>
+            <td><span class="status-pill ${statusClass}">${item.status || "—"}</span></td>
+            <td>${formatDateTime(item.start)}</td>
+            <td>${formatDateTime(item.end)}</td>
+            <td>${formatSeconds(item.duration)}</td>
+          </tr>
+        `;
+      }).join("");
+
+      return `
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Mode</th>
+              <th>Status</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Duration</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      `;
+    }
+
+    async function loadSessions() {
+      try {
+        const res = await fetch(`${API_BASE}/api/sessions`);
+        const json = await res.json();
+        document.getElementById("sessionsContainer").innerHTML = renderSessionsTable(json.data);
+      } catch (err) {
+        console.error("Sessions load error:", err);
+        document.getElementById("sessionsContainer").innerHTML =
+          `<div class="empty">Не вдалося завантажити історію сесій.</div>`;
+      }
+    }
+
+    async function refreshAll() {
+      await loadState();
+      await loadSessions();
+    }
+
+    refreshAll();
+    setInterval(refreshAll, 5000);
+    setInterval(updateCountdown, 1000);
+  </script>
+</body>
+</html>
