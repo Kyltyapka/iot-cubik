@@ -1,65 +1,20 @@
-# =========================
-# Python (Flask backend)
-# =========================
+# Python
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-*.sqlite3
+backend/.venv/
+.venv/
+
+# Secrets
+.env
+passwd
 *.db
 
-# Virtual environment
-venv/
-.env/
+# Node-RED local credentials/config
+node-red/flow_cred.json
+node-red/.config*.json
+node-red/*.backup
+node-red/settings.js
 
-# =========================
-# Environment variables
-# =========================
-.env
-.env.*
-
-# =========================
-# Node-RED / Node.js (на майбутнє)
-# =========================
-node_modules/
-.npm/
-package-lock.json
-
-# Node-RED runtime data
-.node-red/
-flows_cred.json
-
-# =========================
-# Frontend (якщо додасте React/Vue)
-# =========================
-dist/
-build/
-
-# =========================
-# Arduino / ESP32
-# =========================
-*.bin
-*.elf
-
-# =========================
-# Logs
-# =========================
+# Logs/temp
 *.log
-
-# =========================
-# OS files
-# =========================
-.DS_Store
-Thumbs.db
-
-# =========================
-# IDE
-# =========================
-.vscode/
-.idea/
-
-# =========================
-# Misc
-# =========================
 *.tmp
-*.bak
