@@ -1,0 +1,4 @@
+# Generate the real password file with:
+# mosquitto_passwd -c passwd pomodoro_new
+#
+# Keep the generated passwd file local. It contains password hashes and is ignored by Git.

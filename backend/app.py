@@ -58,6 +58,9 @@ from functools import wraps
 def require_api_key(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        if not API_KEY:
+            return jsonify({"status": "error", "message": "API key is not configured"}), 500
+
         provided = request.headers.get("X-API-Key")
         if provided != API_KEY:
             return jsonify({"status": "error", "message": "Unauthorized"}), 401
@@ -230,6 +233,10 @@ def build_notification_message(s):
     return None
 
 def send_telegram_message(text):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("Telegram notification skipped: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is missing")
+        return
+
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
@@ -555,6 +562,45 @@ def api_statistics():
         "data": {
             "summary": summary,
             "by_mode": list(by_mode.values()),
+        }
+    })
+
+
+@app.route("/api/system", methods=["GET"])
+def api_system():
+    conn = db()
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM sessions")
+    session_count = cur.fetchone()[0]
+    cur.execute("""
+        SELECT mode, status, start_time, end_time
+        FROM sessions
+        ORDER BY id DESC
+        LIMIT 1
+    """)
+    last_session = cur.fetchone()
+    conn.close()
+
+    with state_lock:
+        current_state = load_state()
+
+    return jsonify({
+        "status": "ok",
+        "data": {
+            "backend_time": to_iso(now()),
+            "database": "ok",
+            "session_count": session_count,
+            "current_state": current_state["state"] if current_state else None,
+            "current_mode": current_state["current_mode"] if current_state else None,
+            "last_action": current_state["last_action"] if current_state else None,
+            "last_session": {
+                "mode": last_session[0],
+                "status": last_session[1],
+                "start": last_session[2],
+                "end": last_session[3],
+            } if last_session else None,
+            "telegram_configured": bool(TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID),
+            "api_key_configured": bool(API_KEY),
         }
     })
 

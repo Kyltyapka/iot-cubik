@@ -25,6 +25,24 @@ Arduino libraries:
 
 `WiFi`, `Preferences`, and BLE headers come from the ESP32 Arduino core.
 
+## 1.1 Configure local secrets
+
+Create the local backend environment file:
+
+```powershell
+cd C:\Users\LEGION\Desktop\bakalavr\code
+copy .\backend\.env.example .\backend\.env
+```
+
+Edit `backend\.env` and fill `API_KEY`, Telegram values if needed, and MQTT values.
+Do not commit the real `.env` file.
+
+Create the Mosquitto password file:
+
+```powershell
+& "C:\Program Files\mosquitto\mosquitto_passwd.exe" -c C:\Users\LEGION\Desktop\bakalavr\code\passwd pomodoro_new
+```
+
 ## 2. Start the backend
 
 Open PowerShell:
@@ -45,18 +63,29 @@ http://127.0.0.1:3000
 
 Leave this terminal open.
 
+## 2.1 Quick start after setup
+
+After dependencies are installed and `backend\.env` plus `passwd` are configured, you can start the three local services in separate windows:
+
+```powershell
+cd C:\Users\LEGION\Desktop\bakalavr\code
+.\start_project.ps1
+```
+
 ## 3. Start Mosquitto
 
 Open a second PowerShell:
 
 ```powershell
-mosquitto -c C:\Users\LEGION\Desktop\bakalavr\code\mosquitto.conf -v
+cd C:\Users\LEGION\Desktop\bakalavr\code
+mosquitto -c .\mosquitto.conf -v
 ```
 
 If `mosquitto` is not in `PATH`, use:
 
 ```powershell
-& "C:\Program Files\mosquitto\mosquitto.exe" -c C:\Users\LEGION\Desktop\bakalavr\code\mosquitto.conf -v
+cd C:\Users\LEGION\Desktop\bakalavr\code
+& "C:\Program Files\mosquitto\mosquitto.exe" -c .\mosquitto.conf -v
 ```
 
 The config uses `code/passwd`, so MQTT login is required.
@@ -127,6 +156,8 @@ py .\tools\provision_esp32_ble.py `
 ```
 
 After this ESP32 saves the settings and reboots. Next launches will use the saved config automatically.
+
+If Wi-Fi or MQTT is temporarily unavailable, ESP32 keeps the saved config and retries on the next wake/reset. BLE setup starts only after repeated connection failures or when no saved config exists.
 
 On Windows you can let the helper detect the current Wi-Fi SSID and this PC's IPv4 address automatically:
 

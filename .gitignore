@@ -8,12 +8,18 @@ backend/.venv/
 .env
 passwd
 *.db
+*.db-journal
+*.sqlite
+*.sqlite3
 
 # Node-RED local credentials/config
+node_modules/
+node-red/node_modules/
 node-red/flow_cred.json
 node-red/.config*.json
 node-red/*.backup
 node-red/settings.js
+node-red/.sessions.json
 
 # Logs/temp
 *.log

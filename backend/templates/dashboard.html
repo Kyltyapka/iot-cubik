@@ -298,6 +298,9 @@
           <div class="meta-row"><strong>Залишок</strong><span id="summaryRemaining">-</span></div>
           <div class="meta-row"><strong>Оновлено</strong><span id="updatedAt">-</span></div>
           <div class="meta-row"><strong>Остання сесія</strong><span id="lastSessionAt">-</span></div>
+          <div class="meta-row"><strong>Backend</strong><span id="backendStatus">-</span></div>
+          <div class="meta-row"><strong>Database</strong><span id="databaseStatus">-</span></div>
+          <div class="meta-row"><strong>Events</strong><span id="sessionCount">-</span></div>
         </div>
       </div>
     </section>
@@ -522,6 +525,24 @@
       }
     }
 
+    async function loadSystem() {
+      try {
+        const response = await fetch(`${API_BASE}/api/system`);
+        const json = await response.json();
+        const system = json.data;
+
+        document.getElementById("backendStatus").textContent =
+          `ok, ${formatDateTime(system.backend_time)}`;
+        document.getElementById("databaseStatus").textContent = system.database || "-";
+        document.getElementById("sessionCount").textContent = system.session_count ?? "-";
+      } catch (error) {
+        console.error("System status load error:", error);
+        document.getElementById("backendStatus").textContent = "offline";
+        document.getElementById("databaseStatus").textContent = "-";
+        document.getElementById("sessionCount").textContent = "-";
+      }
+    }
+
     function renderSessionsTable(items) {
       if (!items || !items.length) {
         return `<div class="empty">Історія сесій поки відсутня.</div>`;
@@ -574,6 +595,7 @@
 
     async function refreshAll() {
       await loadState();
+      await loadSystem();
       await loadStatistics();
       await loadSessions();
     }

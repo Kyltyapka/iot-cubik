@@ -24,6 +24,7 @@ const char* BLE_CONFIG_TX_UUID = "8cb3b7a2-6f8b-4e6e-8a19-8f823c76f101";
 
 const unsigned long WIFI_CONNECT_TIMEOUT_MS = 20000;
 const unsigned long MQTT_CONNECT_TIMEOUT_MS = 15000;
+const uint8_t MAX_CONNECT_FAILURES_BEFORE_BLE = 3;
 
 struct DeviceConfig {
   String wifiSsid;
@@ -257,6 +258,23 @@ void clearDeviceConfig() {
   prefs.end();
 }
 
+uint8_t getConnectionFailureCount() {
+  prefs.begin("pomodoro", true);
+  uint8_t failures = prefs.getUChar("net_fail", 0);
+  prefs.end();
+  return failures;
+}
+
+void setConnectionFailureCount(uint8_t failures) {
+  prefs.begin("pomodoro", false);
+  prefs.putUChar("net_fail", failures);
+  prefs.end();
+}
+
+void clearConnectionFailureCount() {
+  setConnectionFailureCount(0);
+}
+
 bool readConfigValue(const String& payload, const String& key, String& value) {
   int start = 0;
 
@@ -433,6 +451,7 @@ class ConfigWriteCallback : public BLECharacteristicCallbacks {
     }
 
     saveDeviceConfig(updatedConfig);
+    clearConnectionFailureCount();
     deviceConfig = loadDeviceConfig();
     notifyBle("OK config saved. Rebooting.");
     bleConfigSaved = true;
@@ -780,6 +799,27 @@ void goToDeepSleep() {
   esp_deep_sleep_start();
 }
 
+void handleInitialConnectionFailure(const String& reason) {
+  uint8_t failures = getConnectionFailureCount();
+  if (failures < 255) {
+    failures++;
+  }
+
+  setConnectionFailureCount(failures);
+
+  Serial.print("Connection failure count: ");
+  Serial.print(failures);
+  Serial.print("/");
+  Serial.println(MAX_CONNECT_FAILURES_BEFORE_BLE);
+
+  if (failures >= MAX_CONNECT_FAILURES_BEFORE_BLE) {
+    startBleConfigMode(reason + " after repeated failures");
+  }
+
+  Serial.println("Keeping saved config. Going to sleep; reset or move the cube to retry.");
+  goToDeepSleep();
+}
+
 // =========================
 // Setup
 // =========================
@@ -822,6 +862,7 @@ void setup() {
 
     if (shouldPublish) {
       if (ensureWiFiConnected() && ensureMQTTConnected()) {
+        clearConnectionFailureCount();
         mqttClient.loop();
 
         if (publishFaceState(face)) {
@@ -837,12 +878,13 @@ void setup() {
         WiFi.mode(WIFI_OFF);
       } else {
         Serial.println("Initial Wi-Fi/MQTT connection failed");
-        startBleConfigMode("Initial Wi-Fi/MQTT connection failed");
+        handleInitialConnectionFailure("Initial Wi-Fi/MQTT connection failed");
       }
     } else {
       Serial.println("Same face as last mode, skipping publish");
       // навіть якщо режим той самий, даємо коротке вікно на можливе повторне перевертання
       if (ensureWiFiConnected() && ensureMQTTConnected()) {
+        clearConnectionFailureCount();
         handleActiveWindow();
 
         delay(150);
@@ -851,7 +893,7 @@ void setup() {
         WiFi.mode(WIFI_OFF);
       } else {
         Serial.println("Initial Wi-Fi/MQTT connection failed");
-        startBleConfigMode("Initial Wi-Fi/MQTT connection failed");
+        handleInitialConnectionFailure("Initial Wi-Fi/MQTT connection failed");
       }
     }
   }
